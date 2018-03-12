@@ -11,5 +11,4 @@ galaxy_info:
   galaxy_tags:
     - zookeeper
 
-dependencies:
-  - geerlingguy.java
+dependencies: []
