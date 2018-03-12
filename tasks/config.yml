@@ -1,0 +1,8 @@
+---
+- name: "Configure zookeeper"
+  template: src=conf/{{ item }}.j2 dest={{ zookeeper_dir }}/conf/{{ item }} owner=zookeeper group=zookeeper
+  with_items:
+    - zoo.cfg
+    - log4j.properties
+  notify:
+    - restart zookeeper

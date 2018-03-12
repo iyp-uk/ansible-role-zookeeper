@@ -1,2 +1,4 @@
 ---
-# tasks file for intelematics.zookeeper
+- include: setup.yml
+- include: config.yml
+- service: name=zookeeper state=started enabled=yes

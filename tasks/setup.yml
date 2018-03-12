@@ -1,0 +1,53 @@
+# Create zookeeper user and group
+- group: name=zookeeper system=yes
+- user: name=zookeeper group=zookeeper system=yes
+
+- name: "Create zookeeper directories"
+  file: path={{ item }} state=directory mode=0755 owner=zookeeper group=zookeeper
+  with_items:
+    - "{{ zookeeper_dir }}"
+    - "{{ zookeeper_data_dir }}"
+    - "{{ zookeeper_log_dir }}"
+
+# Download and install archive
+- name: "Download zookeeper binary package archive"
+  get_url:
+    url:  "{{ zookeeper_url }}"
+    dest: "/home/zookeeper/{{ zookeeper_filename }}"
+
+- name: "Extract zookeeper archive"
+  unarchive:
+    src:  "/home/zookeeper/{{ zookeeper_filename }}"
+    dest: "{{ zookeeper_dir }}"
+    extra_opts: ['--strip-components=1']
+    remote_src: yes
+    creates: "{{ zookeeper_dir }}/bin"
+    owner: zookeeper
+    group: zookeeper
+
+# Prepare service for systemd
+- name: "Add environment settings"
+  template: src=zookeeper-env.sh.j2 dest={{ zookeeper_dir }}/conf/zookeeper-env.sh owner=zookeeper group=zookeeper
+  notify:
+    - restart zookeeper
+
+- name: "Create systemd config"
+  template: src=zookeeper.service.j2 dest=/lib/systemd/system/zookeeper.service
+  when: ansible_service_mgr == 'systemd'
+  notify:
+    - reload systemctl daemon
+    - restart zookeeper
+
+- name: "Set myid file"
+  template: src=myid.j2 dest={{ zookeeper_data_dir }}/myid owner=zookeeper group=zookeeper
+  tags: deploy
+  notify:
+    - restart zookeeper
+
+# Add to profile.d
+- name: Add zookeeper's bin dir to the PATH
+  template:
+    src: zookeeper_path.sh.j2
+    dest: /etc/profile.d/zookeeper_path.sh
+    mode: 0644
+  when: zookeeper_register_path_env

@@ -1,2 +1,93 @@
 ---
-# defaults file for intelematics.zookeeper
+zookeeper_version: 3.4.10
+
+zookeeper_mirror: http://apache.mirror.anlx.net/zookeeper
+zookeeper_filename: "zookeeper-{{ zookeeper_version }}.tar.gz"
+zookeeper_url: "{{ zookeeper_mirror }}/zookeeper-{{ zookeeper_version }}/{{ zookeeper_filename }}"
+
+# Where zookeeper actually lives
+zookeeper_dir: /opt/zookeeper-{{ zookeeper_version }}
+
+# Where zookeeper writes its data
+# It's also where the myid file gets written
+zookeeper_data_dir: /var/lib/zookeeper
+
+# Where zookeeper writes the transaction log
+# From zookeeper documentation:
+# This option will direct the machine to write the transaction log to the dataLogDir rather than the dataDir.
+# This allows a dedicated log device to be used, and helps avoid competition between logging and snaphots.
+# Notice it's different to the logs as you generally understand them (log4j)
+zookeeper_data_log_dir: "{{ zookeeper_data_dir }}"
+
+# Where zookeeper logs.
+# This is passed via the environment variables to Zookeeper.
+zookeeper_log_dir: /var/log/zookeeper
+
+# Pass environment variables to zookeeper (will end up in /etc/default/zookeeper and picked up by the zookeeper service)
+zookeeper_heap_opts:  # Unset by default, zookeeper assigns values here if unset. Example: zookeeper_heap_opts: "-Xmx1G -Xms1G"
+zookeeper_log4j_prop: "INFO,CONSOLE" # Sets the zookeeper.root.logger
+zookeeper_env: {}  # Anything else you want to set, as dict of key/value pairs.
+
+# Add zookeeper/bin to PATH. Set to False for not doing it.
+zookeeper_register_path_env: True
+
+# List of dict (i.e. {zookeeper_hosts:[{host:,id:},{host:,id:},...]})
+# For a cluster, you may want to have something like: zookeeper_hosts: "{{groups['zookeeper']}}"
+# Where zookeeper is a group in your inventory file.
+zookeeper_hosts:
+  - host: "{{inventory_hostname}}"
+    id: 1
+
+# Were zookeeper clients connect
+zookeeper_client_port: 2181
+
+# Peer port: Where Quorum members communicate with each other
+zookeeper_peer_port: 2888
+
+# Leader port: Where Quorum leader election happens
+zookeeper_leader_port: 3888
+
+# Default Log4J properties
+zookeeper_log4j_default_pattern_layout_class: "org.apache.log4j.PatternLayout"
+
+# A dict of properties for the various configurations.
+# zoo_cfg goes for zoo.cfg, log4j for log4j.properties, and so on.
+# They replicate the defaults from Zookeeper and their names mirrors the ones in Zookeeper (replace _ with .)
+# You can override these individually if you set hash_behaviour=merge in your ansible.cfg file.
+zookeeper_config:
+  zoo_cfg:
+    tickTime: 2000
+    initLimit: 10
+    syncLimit: 5
+    dataDir: "{{ zookeeper_data_dir }}"
+    dataLogDir: "{{ zookeeper_data_log_dir }}"
+    clientPort: "{{ zookeeper_client_port }}"
+    # Pass in custom_settings a dict of key/value properties not included in the template.
+    custom_settings: {}
+  log4j:
+    zookeeper_root_logger: "{{ zookeeper_log4j_prop }}"
+    zookeeper_console_threshold: INFO
+    zookeeper_log_dir: "{{ zookeeper_log_dir }}"  # Is overriden by environment variable
+    zookeeper_log_file: zookeeper.log
+    zookeeper_log_threshold: DEBUG
+    zookeeper_tracelog_dir: "{{ zookeeper_log_dir }}"
+    zookeeper_tracelog_file: zookeeper_trace.log
+    log4j_appender_CONSOLE:
+      class: "org.apache.log4j.ConsoleAppender"
+      layout:
+        class: "{{ zookeeper_log4j_default_pattern_layout_class }}"
+        conversion_pattern: "%d{ISO8601} [myid:%X{myid}] - %-5p [%t:%C{1}@%L] - %m%n"
+    log4j_appender_ROLLINGFILE:
+      class: "org.apache.log4j.RollingFileAppender"
+      MaxFileSize: "10MB"
+      layout:
+        class: "{{ zookeeper_log4j_default_pattern_layout_class }}"
+        conversion_pattern: "%d{ISO8601} [myid:%X{myid}] - %-5p [%t:%C{1}@%L] - %m%n"
+    log4j_appender_TRACEFILE:
+      class: "org.apache.log4j.FileAppender"
+      layout:
+        class: "{{ zookeeper_log4j_default_pattern_layout_class }}"
+        conversion_pattern: "%d{ISO8601} [myid:%X{myid}] - %-5p [%t:%C{1}@%L][%x] - %m%n"
+    # Pass in custom_settings a dict of properties not included in the log4j.properties template's
+    custom_settings: {}
+

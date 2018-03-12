@@ -1,0 +1,12 @@
+# {{ansible_managed}}
+# This file gets sourced when zookeeper server starts.
+
+ZOO_LOG_DIR={{ zookeeper_log_dir }}
+ZOO_LOG4J_PROP={{ zookeeper_log4j_prop }}
+SERVER_JVMFLAGS={{ zookeeper_heap_opts }}
+
+{% if zookeeper_env is defined and zookeeper_env != {} %}
+{% for key, value in zookeeper_env.iteritems() %}
+{{key}}={{value}}
+{% endfor %}
+{% endif %}

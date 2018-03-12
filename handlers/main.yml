@@ -1,2 +1,6 @@
 ---
-# handlers file for intelematics.zookeeper
+- name: restart zookeeper
+  service: name=zookeeper state=restarted
+
+- name: reload systemctl daemon
+  command: systemctl daemon-reload

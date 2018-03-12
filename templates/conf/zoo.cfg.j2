@@ -1,0 +1,56 @@
+# {{ ansible_managed }}
+# See https://github.com/apache/zookeeper/blob/release-3.4.10/conf/zoo_sample.cfg for defaults
+
+# The number of milliseconds of each tick
+tickTime={{ zookeeper_config.zoo_cfg.tickTime }}
+
+# The number of ticks that the initial
+# synchronization phase can take
+initLimit={{ zookeeper_config.zoo_cfg.initLimit }}
+
+# The number of ticks that can pass between
+# sending a request and getting an acknowledgement
+syncLimit={{ zookeeper_config.zoo_cfg.syncLimit }}
+
+# the directory where the snapshot is stored.
+# do not use /tmp for storage, /tmp here is just
+# example sakes.
+dataDir={{ zookeeper_config.zoo_cfg.dataDir }}
+
+# the port at which the clients will connect
+clientPort={{ zookeeper_config.zoo_cfg.clientPort }}
+
+# the maximum number of client connections.
+# increase this if you need to handle more clients
+#maxClientCnxns=60
+#
+# Be sure to read the maintenance section of the
+# administrator guide before turning on autopurge.
+#
+# http://zookeeper.apache.org/doc/current/zookeeperAdmin.html#sc_maintenance
+#
+# The number of snapshots to retain in dataDir
+#autopurge.snapRetainCount=3
+# Purge task interval in hours
+# Set to "0" to disable auto purge feature
+#autopurge.purgeInterval=1
+
+{% for server in zookeeper_hosts %}
+{% if server.host is defined %}
+{% if server.ip is defined %}
+server.{{ server.id }}={{ server.ip }}:{{ zookeeper_peer_port }}:{{ zookeeper_leader_port }}
+{% else %}
+server.{{ server.id }}={{ server.host }}:{{ zookeeper_peer_port }}:{{ zookeeper_leader_port }}
+{% endif %}
+{% else %}
+server.{{ loop.index }}={{ server }}:{{ zookeeper_peer_port }}:{{ zookeeper_leader_port }}
+{% endif %}
+{% endfor %}
+
+
+{% if zookeeper_config.zoo_cfg.custom_settings is defined and zookeeper_config.zoo_cfg.custom_settings != {} %}
+############################# Custom Settings #############################
+{% for key, value in zookeeper_config.zoo_cfg.custom_settings.items() | sort %}
+{{key}}={{value}}
+{% endfor %}
+{% endif %}
